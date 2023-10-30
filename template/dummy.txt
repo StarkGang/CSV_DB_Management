@@ -1,0 +1,225 @@
+import csv
+import os
+from tabulate import tabulate
+
+
+class <<<db_name>>>_DB:
+    def __init__(self):
+        self.db_created = False
+        self.session_name = None
+        self.file_path = None
+
+    def _construct_file_path(self):
+        self.file_path = f"./sessions/{self.session_name}.csv"
+
+    def make_db(self, session_name, field_names=None):
+        if field_names is None:
+            field_names = ["foo", "bar"]
+        self.session_name = session_name
+        self._construct_file_path()
+        if not os.path.exists(self.file_path):
+            with open(self.file_path, 'w', newline='') as csvfile:
+                dw = csv.DictWriter(csvfile, delimiter=',', fieldnames=field_names) 
+                dw.writeheader() 
+        self.db_created = True
+
+    def add_new_data(self, data):
+        if not self.db_created:
+            self.make_db(self.session_name)
+        with open(self.file_path, 'r', newline='') as csvfile:
+            reader = csv.reader(csvfile)
+            headers = next(reader)
+            if len(data) != len(headers):
+                raise ValueError("Number of columns in the added data does not match the number of columns in the CSV file.")
+        with open(self.file_path, 'a', newline='') as csvfile:
+            writer = csv.writer(csvfile)
+            writer.writerow(data)
+
+    def get_data(self, *args, **kwargs):
+        with open(self.file_path, 'r', newline='') as csvfile:
+            reader = csv.reader(csvfile)
+            data = list(reader)
+
+        if kwargs:
+            head = data[0]
+            result = []
+            for key, value in kwargs.items():
+                if key in head:
+                    index = head.index(key)
+                    result.extend(row for row in data[1:] if row[index] == value)
+            self.print_table(head, result)
+            return result
+
+        if args:
+            result = []
+            for value in args:
+                result.extend(row for row in data[1:] if value in row)
+            self.print_table(data[0], result)
+            return result
+
+        self.print_table(data[0], data[1:])
+        return data[1:]
+
+    def delete_data(self, *args, **kwargs):
+        with open(self.file_path, 'r', newline='') as csvfile:
+            reader = csv.reader(csvfile)
+            data = list(reader)
+
+        if kwargs:
+            head = data[0]
+            result = []
+            for key, value in kwargs.items():
+                if key in head:
+                    index = head.index(key)
+                    result.extend(row for row in data[1:] if row[index] == value)
+            for row in result:
+                data.remove(row)
+
+        if args:
+            result = []
+            for value in args:
+                result.extend(row for row in data[1:] if value in row)
+            for row in result:
+                data.remove(row)
+
+        with open(self.file_path, 'w', newline='') as csvfile:
+            writer = csv.writer(csvfile)
+            writer.writerows(data)
+
+    def update_data_interactive(self):
+        col_name_value = input("Enter column name and value to modify (e.g., name=hello): ")
+        col_name, col_value = col_name_value.split('=')
+
+        with open(self.file_path, 'r', newline='') as csvfile:
+            reader = csv.reader(csvfile)
+            data = list(reader)
+
+        head = data[0]
+        result = [row for row in data[1:] if row[head.index(col_name)] == col_value]
+
+        if not result:
+            print(f"No matching data found for {col_name}={col_value}")
+            return
+
+        print("Matching data:")
+        self.print_table(head, result)
+
+        modify_choice = input(f"Which value would you like to modify? ({', '.join(head)} or index): ")
+        
+        if modify_choice.isdigit() and 0 <= int(modify_choice) < len(head):
+            modify_column = head[int(modify_choice)]
+        elif modify_choice in head:
+            modify_column = modify_choice
+        else:
+            print("Invalid choice. Exiting update.")
+            return
+
+        new_value = input("Enter the new value to modify: ")
+
+        for row in result:
+            index = data.index(row)
+            col_index = head.index(modify_column)
+            data[index][col_index] = new_value
+
+        with open(self.file_path, 'w', newline='') as csvfile:
+            writer = csv.writer(csvfile)
+            writer.writerows(data)
+
+    def delete_db(self):
+        os.remove(self.file_path)
+        self.db_created = False
+
+    def get_headers(self):
+        with open(self.file_path, 'r', newline='') as csvfile:
+            reader = csv.reader(csvfile)
+            return next(reader)
+
+    def print_table(self, headers, rows):
+        print(tabulate([headers] + rows, headers="firstrow"))
+
+def main():
+    db = <<<db_name>>>_DB()
+    current_menu = "main_menu"
+    db.make_db("<<<db_name>>>", <<<db_col>>>)
+    while True:
+        if current_menu == "main_menu":
+            main_menu_options = ["Add New Data", "Get Data", "Delete Data", "Update Data", "Delete Database", "Exit"]
+            print(f"\n\nSelect an option:\n{tabulate(enumerate(main_menu_options, start=1), tablefmt='plain')}\n")
+
+            selected_option = input("Enter the option number: ")
+
+            if selected_option.isdigit() and 1 <= int(selected_option) <= len(main_menu_options):
+                choice_text = main_menu_options[int(selected_option) - 1]
+
+                if choice_text == "Add New Data":
+                    try:
+                        data_input = input("Enter data (comma-separated): ").split(',')
+                        db.add_new_data(data_input)
+                        print("Data added successfully.")
+                    except ValueError as ve:
+                        print(f"Error: {ve}")
+                elif choice_text == "Get Data":
+                    search_criteria = input("Enter search criteria (key=value or value): ")
+                    if "=" in search_criteria:
+                        key, value = search_criteria.split('=')
+                        result = db.get_data(**{key: value})
+                    else:
+                        result = db.get_data(search_criteria)
+                elif choice_text == "Delete Data":
+                    delete_criteria = input("Enter delete criteria (key=value or value): ")
+                    if "=" in delete_criteria:
+                        key, value = delete_criteria.split('=')
+                        db.delete_data(**{key: value})
+                    else:
+                        db.delete_data(delete_criteria)
+                elif choice_text == "Update Data":
+                    db.update_data_interactive()
+                elif choice_text == "Delete Database":
+                    db.delete_db()
+                    print("Database deleted.")
+                elif choice_text == "Exit":
+                    break
+
+GREEN = "\033[32m"
+CYAN = "\033[36m"
+MAGENTA = "\033[35m"
+RED = "\033[31m"
+BLUE = "\033[34m"
+YELLOW = "\033[33m"
+RESET = "\033[0m"
+
+
+ascii_art = """@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@((((((((((@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+@@@@@@@@@@@@@@@@@@@@@@@@@@@@%((((((@@@(@@@(((((#@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+@@@@@@@@@@@@@@@@@@@@@@@@@#((#((@@((@@@(@@@@@@@(((((@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+@@@@@@@@@@@@@@@@@@@@@@@@@(&@@((@@((@@@(@@@((@@@@(((@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+@@@@@@@@@@@@@@@@@@@@@@@@@((@@((@@#(@@@(@@@((((@%(((@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+@@@@@@@@@@@@@@@@@@@@@@@@@#(@@@(@@@(@@@((@@@@(((((((@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+@@@@@@@@@@@@@@@@@@@@@@@@@@((@@(@@@(@@@((((@@@@#(((@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+@@@@@@@@@@@@@@@@@@@@@@@@@@@(@@@@@@#@@@(((((((@@%((@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+@@@@@@@@@@@@@@@@@@@@@@@@@@@@(%@(%@@@@@(@@@(((@@%(@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+@@@@@@@@@@@@@@@@@@@@@@@@@@@@@((((@@@@@(@@@(@@@(@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@(((&@@@(@@@@@((@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@(((@@(@@(((@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@((((((@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+"""
+
+if __name__ == "__main__":
+    terminal_startup = f"""{GREEN}{ascii_art}{RESET}
+
+{MAGENTA}--------------------------------------{RESET}
+{CYAN}Welcome to <<<script_name>>> Database Management System{RESET}
+{YELLOW}Made Using Python 3.11{RESET}
+{RED}Packages (OR) Modules Used: csv, tabulate, os{RESET}
+{BLUE}Made By{RESET} {RED}<<<person_name>>>{RESET}
+{MAGENTA}--------------------------------------{RESET}
+    """
+    print(terminal_startup)
+    main()

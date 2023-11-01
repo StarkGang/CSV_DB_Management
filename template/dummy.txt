@@ -1,6 +1,5 @@
 import csv
 import os
-from tabulate import tabulate
 
 
 class <<<db_name>>>_DB:
@@ -19,8 +18,8 @@ class <<<db_name>>>_DB:
         self._construct_file_path()
         if not os.path.exists(self.file_path):
             with open(self.file_path, 'w', newline='') as csvfile:
-                dw = csv.DictWriter(csvfile, delimiter=',', fieldnames=field_names) 
-                dw.writeheader() 
+                dw = csv.DictWriter(csvfile, delimiter=',', fieldnames=field_names)
+                dw.writeheader()
         self.db_created = True
 
     def add_new_data(self, data):
@@ -39,7 +38,6 @@ class <<<db_name>>>_DB:
         with open(self.file_path, 'r', newline='') as csvfile:
             reader = csv.reader(csvfile)
             data = list(reader)
-
         if kwargs:
             head = data[0]
             result = []
@@ -49,14 +47,12 @@ class <<<db_name>>>_DB:
                     result.extend(row for row in data[1:] if row[index] == value)
             self.print_table(head, result)
             return result
-
         if args:
             result = []
             for value in args:
                 result.extend(row for row in data[1:] if value in row)
             self.print_table(data[0], result)
             return result
-
         self.print_table(data[0], data[1:])
         return data[1:]
 
@@ -64,7 +60,6 @@ class <<<db_name>>>_DB:
         with open(self.file_path, 'r', newline='') as csvfile:
             reader = csv.reader(csvfile)
             data = list(reader)
-
         if kwargs:
             head = data[0]
             result = []
@@ -74,14 +69,12 @@ class <<<db_name>>>_DB:
                     result.extend(row for row in data[1:] if row[index] == value)
             for row in result:
                 data.remove(row)
-
         if args:
             result = []
             for value in args:
                 result.extend(row for row in data[1:] if value in row)
             for row in result:
                 data.remove(row)
-
         with open(self.file_path, 'w', newline='') as csvfile:
             writer = csv.writer(csvfile)
             writer.writerows(data)
@@ -89,7 +82,6 @@ class <<<db_name>>>_DB:
     def update_data_interactive(self):
         col_name_value = input("Enter column name and value to modify (e.g., name=hello): ")
         col_name, col_value = col_name_value.split('=')
-
         with open(self.file_path, 'r', newline='') as csvfile:
             reader = csv.reader(csvfile)
             data = list(reader)
@@ -105,7 +97,7 @@ class <<<db_name>>>_DB:
         self.print_table(head, result)
 
         modify_choice = input(f"Which value would you like to modify? ({', '.join(head)} or index): ")
-        
+
         if modify_choice.isdigit() and 0 <= int(modify_choice) < len(head):
             modify_column = head[int(modify_choice)]
         elif modify_choice in head:
@@ -135,7 +127,16 @@ class <<<db_name>>>_DB:
             return next(reader)
 
     def print_table(self, headers, rows):
-        print(tabulate([headers] + rows, headers="firstrow"))
+        max_lengths = [max(len(str(value)) for value in col) for col in zip(headers, *rows)]
+        row_format = "|".join([" {:<" + str(length) + "} " for length in max_lengths])
+        header_separator = "+".join(["-" * (length + 2) for length in max_lengths])
+        print(header_separator)
+        print(row_format.format(*headers))
+        print(header_separator)
+        for row in rows:
+            print(row_format.format(*row))
+        print(header_separator)
+
 
 def main():
     db = <<<db_name>>>_DB()
@@ -144,7 +145,9 @@ def main():
     while True:
         if current_menu == "main_menu":
             main_menu_options = ["Add New Data", "Get Data", "Delete Data", "Update Data", "Delete Database", "Exit"]
-            print(f"\n\nSelect an option:\n{tabulate(enumerate(main_menu_options, start=1), tablefmt='plain')}\n")
+            print(f"\n\nSelect an option:\n")
+            for idx, option in enumerate(main_menu_options, start=1):
+                print(f"{idx}. {option}")
 
             selected_option = input("Enter the option number: ")
 
@@ -180,6 +183,7 @@ def main():
                 elif choice_text == "Exit":
                     break
 
+
 GREEN = "\033[32m"
 CYAN = "\033[36m"
 MAGENTA = "\033[35m"
@@ -189,35 +193,13 @@ YELLOW = "\033[33m"
 RESET = "\033[0m"
 
 
-ascii_art = """@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@((((((((((@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-@@@@@@@@@@@@@@@@@@@@@@@@@@@@%((((((@@@(@@@(((((#@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-@@@@@@@@@@@@@@@@@@@@@@@@@#((#((@@((@@@(@@@@@@@(((((@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-@@@@@@@@@@@@@@@@@@@@@@@@@(&@@((@@((@@@(@@@((@@@@(((@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-@@@@@@@@@@@@@@@@@@@@@@@@@((@@((@@#(@@@(@@@((((@%(((@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-@@@@@@@@@@@@@@@@@@@@@@@@@#(@@@(@@@(@@@((@@@@(((((((@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-@@@@@@@@@@@@@@@@@@@@@@@@@@((@@(@@@(@@@((((@@@@#(((@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-@@@@@@@@@@@@@@@@@@@@@@@@@@@(@@@@@@#@@@(((((((@@%((@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-@@@@@@@@@@@@@@@@@@@@@@@@@@@@(%@(%@@@@@(@@@(((@@%(@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-@@@@@@@@@@@@@@@@@@@@@@@@@@@@@((((@@@@@(@@@(@@@(@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@(((&@@@(@@@@@((@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@(((@@(@@(((@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@((((((@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-"""
 
 if __name__ == "__main__":
-    terminal_startup = f"""{GREEN}{ascii_art}{RESET}
-
+    terminal_startup = f"""
 {MAGENTA}--------------------------------------{RESET}
 {CYAN}Welcome to <<<script_name>>> Database Management System{RESET}
 {YELLOW}Made Using Python 3.11{RESET}
-{RED}Packages (OR) Modules Used: csv, tabulate, os{RESET}
+{RED}Packages (OR) Modules Used: csv, os{RESET}
 {BLUE}Made By{RESET} {RED}<<<person_name>>>{RESET}
 {MAGENTA}--------------------------------------{RESET}
     """
